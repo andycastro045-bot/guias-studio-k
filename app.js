@@ -3,28 +3,77 @@
   const home = $("home"), editor = $("editor"), status = $("status");
   const ids = ["nombre", "cedula", "celular", "ciudad", "direccion"];
   const fields = Object.fromEntries(ids.map((k) => [k, $("f-" + k)]));
-  const DRAFT = "studiok-draft", COUNT = "studiok-count";
+  const DRAFT = "studiok-draft", GUIDES = "studiok-guias";
 
   function store(key, val) { try { val === undefined ? localStorage.removeItem(key) : localStorage.setItem(key, val); } catch (e) {} }
   function load(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 
-  function showCount() {
-    const n = parseInt(load(COUNT) || "0", 10);
-    $("countMeta").textContent = n > 0 ? n + (n === 1 ? " guía creada en este dispositivo" : " guías creadas en este dispositivo") : "";
+  // Saved guides: [{ n, fecha (ISO), datos: {nombre, ...} }], numbered in creation order
+  function loadGuides() { try { return JSON.parse(load(GUIDES) || "[]"); } catch (e) { return []; } }
+  function saveGuides(list) { store(GUIDES, JSON.stringify(list)); }
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmtFecha = (iso) => new Date(iso).toLocaleString("es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  let current = null; // number of the saved guide open in the editor, or null for a new one
+
+  function renderGuides() {
+    const list = loadGuides();
+    $("guidesSection").hidden = list.length === 0 || !editor.hidden;
+    const ul = $("guidesList");
+    ul.textContent = "";
+    list.slice().reverse().forEach((g) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "guide-row";
+      const num = document.createElement("span"); num.className = "g-num"; num.textContent = "Guía " + pad(g.n);
+      const when = document.createElement("span"); when.className = "g-when"; when.textContent = fmtFecha(g.fecha);
+      const who = document.createElement("span"); who.className = "g-who"; who.textContent = g.datos.nombre || "";
+      b.append(num, when, who);
+      b.addEventListener("click", () => openGuide(g.n));
+      li.appendChild(b); ul.appendChild(li);
+    });
   }
-  function bumpCount() { store(COUNT, String(parseInt(load(COUNT) || "0", 10) + 1)); }
+  // Called after a print/download/share: the first one numbers and dates the guide
+  function recordGuide(v) {
+    const list = loadGuides();
+    const existing = current && list.find((g) => g.n === current);
+    if (existing) { existing.datos = v; }
+    else {
+      const n = list.reduce((m, g) => Math.max(m, g.n), 0) + 1;
+      list.push({ n, fecha: new Date().toISOString(), datos: v });
+      current = n;
+    }
+    saveGuides(list);
+    showTitle();
+    return current;
+  }
+  function showTitle() {
+    const g = current && loadGuides().find((x) => x.n === current);
+    $("editorTitle").textContent = g ? "Guía " + pad(g.n) : "Nueva guía";
+    $("editorWhen").textContent = g ? "Creada el " + fmtFecha(g.fecha) : "";
+  }
   function setStatus(msg, kind) { status.textContent = msg; status.className = "status" + (kind ? " " + kind : ""); }
   function clearFields() {
     ids.forEach((k) => { fields[k].value = ""; fields[k].closest(".box").classList.remove("missing"); });
     store(DRAFT); setStatus("");
+    current = null; showTitle();
   }
   function openEditor(fresh) {
     if (fresh) clearFields();
-    home.hidden = true; editor.hidden = false;
+    home.hidden = true; editor.hidden = false; $("guidesSection").hidden = true;
     window.scrollTo(0, 0);
     setTimeout(() => fields.nombre.focus(), 50);
   }
-  function goHome() { editor.hidden = true; home.hidden = false; showCount(); }
+  function openGuide(n) {
+    const g = loadGuides().find((x) => x.n === n);
+    if (!g) return;
+    clearFields();
+    ids.forEach((k) => fields[k].value = g.datos[k] || "");
+    current = n; showTitle();
+    home.hidden = true; editor.hidden = false; $("guidesSection").hidden = true;
+    window.scrollTo(0, 0);
+  }
+  function goHome() { editor.hidden = true; home.hidden = false; renderGuides(); }
 
   // Restore an unfinished draft, if any
   try {
@@ -40,7 +89,7 @@
   $("backBtn").addEventListener("click", goHome);
   $("clearBtn").addEventListener("click", () => { clearFields(); fields.nombre.focus(); });
   $("form").addEventListener("submit", (e) => e.preventDefault());
-  showCount();
+  renderGuides();
 
   // Logo rasterized once for the PDF (high resolution for thermal printers)
   let logoPng = null;
@@ -99,10 +148,10 @@
     return doc.output("blob");
   }
 
-  function fileName(nombre) {
+  function fileName(n, nombre) {
     const slug = (nombre || "cliente").normalize("NFD").replace(/[̀-ͯ]/g, "")
       .replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase().slice(0, 40) || "cliente";
-    return "guia_" + slug + ".pdf";
+    return "guia_" + pad(n) + "_" + slug + ".pdf";
   }
 
   // Validates the form; returns the values or null
@@ -124,7 +173,9 @@
     setStatus("Generando PDF…");
     try {
       const blob = await buildPdf(v);
-      await action(blob, fileName(v.nombre));
+      const n = current || loadGuides().reduce((m, g) => Math.max(m, g.n), 0) + 1;
+      const msg = await action(blob, fileName(n, v.nombre));
+      done(v, msg);
     } catch (e) {
       if (e && e.name === "AbortError") { setStatus(""); return; }
       setStatus(e && e.message === "jspdf_missing"
@@ -133,9 +184,10 @@
     }
   }
 
-  function done(msg) {
-    bumpCount(); store(DRAFT);
-    setStatus(msg + " Pulsa “Limpiar y crear otra” para el siguiente pedido.", "ok");
+  function done(v, msg) {
+    const n = recordGuide(v);
+    store(DRAFT);
+    setStatus(msg + " Quedó guardada como Guía " + pad(n) + ". Pulsa “Limpiar y crear otra” para el siguiente pedido.", "ok");
   }
 
   $("pdfBtn").addEventListener("click", () => withPdf(async (blob, name) => {
@@ -143,7 +195,7 @@
     const a = document.createElement("a");
     a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-    done("PDF descargado.");
+    return "PDF descargado.";
   }));
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -157,7 +209,7 @@
       frame.onload = () => { try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) { window.open(url, "_blank"); } };
       frame.src = url;
     }
-    done("Guía enviada a imprimir.");
+    return "Guía enviada a imprimir.";
   }));
 
   // Share (WhatsApp, correo, etc.) where the device supports sharing files
@@ -168,7 +220,7 @@
   $("shareBtn").addEventListener("click", () => withPdf(async (blob, name) => {
     const file = new File([blob], name, { type: "application/pdf" });
     await navigator.share({ files: [file], title: "Guía de envío Studio K" });
-    done("Guía compartida.");
+    return "Guía compartida.";
   }));
 
   // Install as an app

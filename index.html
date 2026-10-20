@@ -70,6 +70,22 @@ img { max-width: 100%; }
 }
 .meta { font-size: 13px; color: var(--muted); }
 
+/* Saved guides, newest first */
+.guides { display: flex; flex-direction: column; gap: 10px; }
+.guides h3 { font-family: var(--display); font-size: 22px; font-weight: 600; margin: 8px 0 0; }
+.guides ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.guides li { border-bottom: 1px solid var(--line); }
+.guide-row {
+  width: 100%; display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; align-items: baseline;
+  background: transparent; border: 0; color: var(--ink); text-align: left; cursor: pointer;
+  padding: 12px 4px; font: inherit;
+}
+.guide-row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.guide-row:focus-visible { outline: 3px solid #6aa0ff; outline-offset: -3px; }
+.g-num { font-weight: 600; font-variant-numeric: tabular-nums; grid-row: span 2; }
+.g-when { font-size: 14px; font-variant-numeric: tabular-nums; }
+.g-who { font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Editor toolbar */
 .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .bar h2 { font-family: var(--display); font-size: 26px; font-weight: 600; margin: 0; }
@@ -126,13 +142,20 @@ img { max-width: 100%; }
     <p>Crea la guía 4×6 de cada pedido. Solo llenas los datos del cliente y la imprimes o descargas en PDF.</p>
     <button class="btn big" id="newBtn" type="button">＋ Crear nueva guía</button>
     <button class="ghost" id="installBtn" type="button" hidden>Instalar app en este dispositivo</button>
-    <span class="meta" id="countMeta"></span>
+  </section>
+
+  <section class="guides" id="guidesSection" hidden>
+    <h3>Guías creadas</h3>
+    <ul id="guidesList"></ul>
   </section>
 
   <section id="editor" hidden>
     <div class="wrap">
       <div class="bar">
-        <h2>Nueva guía</h2>
+        <div>
+          <h2 id="editorTitle">Nueva guía</h2>
+          <span class="meta" id="editorWhen"></span>
+        </div>
         <button class="ghost" id="backBtn" type="button">← Inicio</button>
       </div>
 
