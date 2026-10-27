@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Guías Studio K</title>
-<meta name="description" content="Crea guías de envío 4×4 de Studio K y descárgalas en PDF listas para imprimir.">
+<meta name="description" content="Crea guías de envío de Studio K y descárgalas en PDF listas para imprimir.">
 <meta name="theme-color" content="#111111">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
@@ -94,15 +94,17 @@ img { max-width: 100%; }
 .status.ok { color: var(--ok); }
 .status.err { color: var(--warn); }
 
-/* The label: 10.02 x 10.02 cm = 284 x 284 pt, 1pt = var(--u). Same numbers as LAYOUT in app.js */
+/* The label: 11.2 cm wide x 11 cm tall. The layout uses a 284-unit square grid (same numbers as
+   buildPdf in app.js), scaled to the label height and centered across its width; 1 unit = var(--u) */
 .label-shell { container-type: inline-size; width: 100%; max-width: 440px; margin: 0 auto; }
 .label {
-  --u: calc(100cqw / 284);
-  position: relative; width: 100%; aspect-ratio: 1 / 1; max-width: 100%;
+  --u: calc(100cqw / 289.16);
+  position: relative; width: 100%; aspect-ratio: 112 / 110; max-width: 100%;
   background: var(--paper); color: #000; border-radius: 6px;
   box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 10px 30px rgba(0,0,0,.10);
   overflow: hidden;
 }
+.design { position: absolute; top: 0; left: 0.893%; width: 98.214%; height: 100%; }
 .label .logo { position: absolute; left: calc(87 * var(--u)); top: calc(6 * var(--u)); width: calc(110 * var(--u)); }
 .label .rule { position: absolute; left: calc(10 * var(--u)); width: calc(264 * var(--u)); top: calc(77.5 * var(--u)); height: calc(1.1 * var(--u)); background: #000; }
 .box {
@@ -140,7 +142,7 @@ img { max-width: 100%; }
   <section class="home" id="home">
     <div class="brand"><img src="logo.svg" alt="Studio K, Tu molde Perfecto"></div>
     <h1>Guías de envío</h1>
-    <p>Crea la guía 4×4 de cada pedido. Solo llenas los datos del cliente y la imprimes o descargas en PDF.</p>
+    <p>Crea la guía de cada pedido. Solo llenas los datos del cliente y la imprimes o descargas en PDF.</p>
     <button class="btn big" id="newBtn" type="button">＋ Crear nueva guía</button>
     <button class="ghost" id="installBtn" type="button" hidden>Instalar app en este dispositivo</button>
   </section>
@@ -163,6 +165,7 @@ img { max-width: 100%; }
       <form id="form" autocomplete="off">
         <div class="label-shell">
           <div class="label" id="label">
+           <div class="design">
             <img class="logo" src="logo.svg" alt="Studio K">
             <div class="rule"></div>
             <div class="box" style="left:calc(10 * var(--u)); width:calc(264 * var(--u)); top:calc(84 * var(--u)); height:calc(34 * var(--u))">
@@ -187,6 +190,7 @@ img { max-width: 100%; }
             </div>
             <div class="thanks-rule"></div>
             <div class="thanks">¡Gracias por tu compra!</div>
+           </div>
           </div>
         </div>
       </form>
@@ -200,7 +204,7 @@ img { max-width: 100%; }
         <button class="ghost" id="clearBtn" type="button">Limpiar y crear otra</button>
       </div>
       <p class="status" id="status"></p>
-      <p class="hint">Escribe directamente sobre la guía. El PDF sale en tamaño 10,02 × 10,02 cm (4×4 pulgadas), la medida de tus etiquetas.</p>
+      <p class="hint">Escribe directamente sobre la guía. El PDF sale en tamaño 11,2 × 11 cm, la medida de tus etiquetas.</p>
     </div>
   </section>
 </div>

@@ -1,6 +1,6 @@
 # Guías Studio K
 
-App web para crear guías de envío 4×4 (10,02 × 10,02 cm) de Studio K.
+App web para crear guías de envío de 11,2 × 11 cm de Studio K.
 
 1. Abre la app y pulsa **Crear nueva guía**.
 2. Llena los datos del cliente directamente sobre la guía.

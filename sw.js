@@ -1,5 +1,5 @@
 // Offline cache: app shell precached, fonts and jsPDF cached on first use
-const CACHE = "guias-studio-k-v3";
+const CACHE = "guias-studio-k-v4";
 const SHELL = [
   "./",
   "index.html",

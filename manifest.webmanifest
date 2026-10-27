@@ -1,7 +1,7 @@
 {
   "name": "Guías Studio K",
   "short_name": "Guías K",
-  "description": "Crea guías de envío 4×4 (10,02 × 10,02 cm) de Studio K listas para imprimir.",
+  "description": "Crea guías de envío de 11,2 × 11 cm de Studio K listas para imprimir.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",

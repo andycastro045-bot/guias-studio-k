@@ -115,11 +115,16 @@
   async function buildPdf(v) {
     if (!window.jspdf) throw new Error("jspdf_missing");
     const { jsPDF } = window.jspdf;
-    // Label 10.02 x 10.02 cm = 284 x 284 pt. Positions match the inline styles in index.html
-    const doc = new jsPDF({ unit: "pt", format: [284, 284], orientation: "portrait" });
+    // Label 11.2 cm wide x 11 cm tall. The layout is drawn on a 284-unit square grid (same numbers
+    // as the inline styles in index.html), scaled to the label height and centered across its width.
+    const PAGE_W = 112 / 25.4 * 72, PAGE_H = 110 / 25.4 * 72;
+    const K = PAGE_H / 284, OX = (PAGE_W - 284 * K) / 2;
+    const X = (u) => OX + u * K, S = (u) => u * K;
+    // jsPDF swaps the sides to match the orientation, so a page wider than tall must be "landscape"
+    const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H], orientation: PAGE_W > PAGE_H ? "landscape" : "portrait" });
     const logo = await getLogo();
-    doc.addImage(logo, "PNG", 87, 6, 110, 110 * 2118 / 3468, "logo", "FAST");
-    doc.setDrawColor(0); doc.setLineWidth(1.1); doc.line(10, 78, 274, 78);
+    doc.addImage(logo, "PNG", X(87), S(6), S(110), S(110 * 2118 / 3468), "logo", "FAST");
+    doc.setDrawColor(0); doc.setLineWidth(S(1.1)); doc.line(X(10), S(78), X(274), S(78));
 
     // [label, value, x, y, width, height]
     const boxes = [
@@ -130,24 +135,24 @@
       ["DIRECCIÓN DE ENVÍO", v.direccion, 10, 201, 264, 52],
     ];
     boxes.forEach(([label, value, x, top, w, h]) => {
-      doc.setLineWidth(1.2); doc.roundedRect(x, top, w, h, 4, 4, "S");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.text(label, x + 6, top + 10.5);
+      doc.setLineWidth(S(1.2)); doc.roundedRect(X(x), S(top), S(w), S(h), S(4), S(4), "S");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(S(7)); doc.text(label, X(x + 6), S(top + 10.5));
       doc.setFont("helvetica", "normal");
-      // Shrink the text until it fits the box (first baseline at top + 24)
+      // Shrink the text until it fits the box (first baseline at top + 24), in grid units
       let size = 10.5, lines;
       do {
-        doc.setFontSize(size);
-        lines = doc.splitTextToSize((value || "").trim(), w - 12);
+        doc.setFontSize(S(size));
+        lines = doc.splitTextToSize((value || "").trim(), S(w - 12));
         const maxLines = Math.floor((h - 28) / (size * 1.15)) + 1;
         if (lines.length <= maxLines) break;
         size -= 0.5;
       } while (size > 6.5);
-      doc.text(lines, x + 6, top + 24, { lineHeightFactor: 1.15 });
+      doc.text(lines, X(x + 6), S(top + 24), { lineHeightFactor: 1.15 });
     });
 
-    doc.setLineWidth(0.8); doc.line(62, 259.5, 222, 259.5);
-    doc.setFont("times", "bolditalic"); doc.setFontSize(12);
-    doc.text("¡Gracias por tu compra!", 142, 275, { align: "center" });
+    doc.setLineWidth(S(0.8)); doc.line(X(62), S(259.5), X(222), S(259.5));
+    doc.setFont("times", "bolditalic"); doc.setFontSize(S(12));
+    doc.text("¡Gracias por tu compra!", X(142), S(275), { align: "center" });
     return doc.output("blob");
   }
 
