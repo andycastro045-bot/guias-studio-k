@@ -99,7 +99,8 @@
       const img = new Image();
       img.onload = () => {
         const c = document.createElement("canvas");
-        c.width = 2080; c.height = Math.round(2080 * 2118 / 3468);
+        // 1200 px across 110 pt is about 780 dpi, well above the printer's 203 dpi
+        c.width = 1200; c.height = Math.round(1200 * 2118 / 3468);
         const ctx = c.getContext("2d");
         ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
         ctx.drawImage(img, 0, 0, c.width, c.height);
@@ -114,37 +115,39 @@
   async function buildPdf(v) {
     if (!window.jspdf) throw new Error("jspdf_missing");
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: [288, 432], orientation: "portrait" });
+    // Label 10.02 x 10.02 cm = 284 x 284 pt. Positions match the inline styles in index.html
+    const doc = new jsPDF({ unit: "pt", format: [284, 284], orientation: "portrait" });
     const logo = await getLogo();
-    doc.addImage(logo, "PNG", 64, 12, 160, 160 * 2118 / 3468);
-    doc.setDrawColor(0); doc.setLineWidth(1.2); doc.line(14, 119, 274, 119);
+    doc.addImage(logo, "PNG", 87, 6, 110, 110 * 2118 / 3468, "logo", "FAST");
+    doc.setDrawColor(0); doc.setLineWidth(1.1); doc.line(10, 78, 274, 78);
 
+    // [label, value, x, y, width, height]
     const boxes = [
-      ["NOMBRES COMPLETOS", v.nombre, 129.2, 37.8],
-      ["CÉDULA DE IDENTIDAD", v.cedula, 173.9, 37.8],
-      ["NÚMERO CELULAR", v.celular, 218.6, 37.8],
-      ["CIUDAD", v.ciudad, 264, 37.8],
-      ["DIRECCIÓN DE ENVÍO", v.direccion, 308.8, 66.2],
+      ["NOMBRES COMPLETOS", v.nombre, 10, 84, 264, 34],
+      ["CÉDULA DE IDENTIDAD", v.cedula, 10, 123, 129.5, 34],
+      ["NÚMERO CELULAR", v.celular, 144.5, 123, 129.5, 34],
+      ["CIUDAD", v.ciudad, 10, 162, 264, 34],
+      ["DIRECCIÓN DE ENVÍO", v.direccion, 10, 201, 264, 52],
     ];
-    boxes.forEach(([label, value, top, h]) => {
-      doc.setLineWidth(1.3); doc.roundedRect(14, top, 260, h, 4, 4, "S");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(7.6); doc.text(label, 21, top + 11.8);
+    boxes.forEach(([label, value, x, top, w, h]) => {
+      doc.setLineWidth(1.2); doc.roundedRect(x, top, w, h, 4, 4, "S");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.text(label, x + 6, top + 10.5);
       doc.setFont("helvetica", "normal");
-      let size = 11;
-      const maxLines = Math.max(1, Math.floor((h - 18) / 12.5));
-      let lines;
+      // Shrink the text until it fits the box (first baseline at top + 24)
+      let size = 10.5, lines;
       do {
         doc.setFontSize(size);
-        lines = doc.splitTextToSize((value || "").trim(), 246);
+        lines = doc.splitTextToSize((value || "").trim(), w - 12);
+        const maxLines = Math.floor((h - 28) / (size * 1.15)) + 1;
         if (lines.length <= maxLines) break;
         size -= 0.5;
-      } while (size > 7);
-      doc.text(lines, 21, top + 26, { lineHeightFactor: 1.15 });
+      } while (size > 6.5);
+      doc.text(lines, x + 6, top + 24, { lineHeightFactor: 1.15 });
     });
 
-    doc.setLineWidth(0.9); doc.line(54, 385.5, 234, 385.5);
-    doc.setFont("times", "bolditalic"); doc.setFontSize(14);
-    doc.text("¡Gracias por tu compra!", 144, 408, { align: "center" });
+    doc.setLineWidth(0.8); doc.line(62, 259.5, 222, 259.5);
+    doc.setFont("times", "bolditalic"); doc.setFontSize(12);
+    doc.text("¡Gracias por tu compra!", 142, 275, { align: "center" });
     return doc.output("blob");
   }
 
